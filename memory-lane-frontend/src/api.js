@@ -1,15 +1,28 @@
 import axios from "axios";
 
-const API = axios.create({ baseURL: "http://localhost:5000/api" });
+const API = axios.create({
+    baseURL: "http://localhost:5001/api",
+});
 
-// Attach token to requests
-API.interceptors.request.use((req) => {
+// Add a request interceptor to add the token to all requests
+API.interceptors.request.use((config) => {
     const token = localStorage.getItem("token");
-    if (token) req.headers.Authorization = token;
-    return req;
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    // Don't set Content-Type for FormData
+    if (config.data instanceof FormData) {
+        delete config.headers['Content-Type'];
+    } else {
+        config.headers['Content-Type'] = 'application/json';
+    }
+    
+    return config;
 });
 
 export const register = (user) => API.post("/auth/register", user);
 export const login = (user) => API.post("/auth/login", user);
-export const addMemory = (memory) => API.post("/memory/add-memory", memory);
+export const addMemory = (memoryData) => API.post("/memory/add-memory", memoryData);
 export const getMemories = () => API.get("/memory/memories");
+export const deleteMemory = (id) => API.delete(`/memory/delete/${id}`);

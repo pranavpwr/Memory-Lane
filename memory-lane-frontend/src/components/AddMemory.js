@@ -4,17 +4,29 @@ import { motion } from "framer-motion";
 import { addMemory } from "../api";
 
 const AddMemory = ({ onMemoryAdded }) => {
-    const [memory, setMemory] = useState({ title: "", description: "", media: "" });
+    const [memory, setMemory] = useState({ title: "", description: "" });
+    const [file, setFile] = useState(null);
+    const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
         try {
-            await addMemory(memory);
+            const formData = new FormData();
+            formData.append('title', memory.title);
+            formData.append('description', memory.description);
+            if (file) {
+                formData.append('media', file);
+            }
+
+            await addMemory(formData);
             onMemoryAdded();
-            setMemory({ title: "", description: "", media: "" });
+            setMemory({ title: "", description: "" });
+            setFile(null);
         } catch (error) {
             alert("Failed to add memory");
         }
+        setLoading(false);
     };
 
     return (
@@ -43,18 +55,19 @@ const AddMemory = ({ onMemoryAdded }) => {
                             onChange={(e) => setMemory({ ...memory, description: e.target.value })}
                             required
                         />
-                        <TextField
-                            label="Image/Video URL"
-                            value={memory.media}
-                            onChange={(e) => setMemory({ ...memory, media: e.target.value })}
+                        <input
+                            type="file"
+                            accept="image/*,video/*"
+                            onChange={(e) => setFile(e.target.files[0])}
                         />
                         <Button
                             type="submit"
                             variant="contained"
                             size="large"
+                            disabled={loading}
                             sx={{ alignSelf: "flex-start" }}
                         >
-                            Add Memory
+                            {loading ? "Adding..." : "Add Memory"}
                         </Button>
                     </Box>
                 </form>
