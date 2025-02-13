@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
+const { startEmailScheduler } = require('./services/schedulerService');
 
 const authRoutes = require("./routes/authRoutes");
 const memoryRoutes = require("./routes/memoryRoutes");
@@ -11,6 +12,7 @@ app.use(express.json());
 app.use(cors());
 
 connectDB();
+startEmailScheduler(); // Start the email scheduler
 
 app.use("/api/auth", authRoutes);
 app.use("/api/memory", memoryRoutes);

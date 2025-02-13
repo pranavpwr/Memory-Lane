@@ -5,6 +5,7 @@ const memorySchema = new mongoose.Schema({
     title: String,
     description: String,
     media: String, // Image/Video URL
+    date: { type: Date, default: Date.now },
     createdAt: { type: Date, default: Date.now }
 });
 
