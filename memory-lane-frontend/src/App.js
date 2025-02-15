@@ -1,8 +1,10 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Register from "./components/Register";
-import Login from "./components/Login";
-import Dashboard from "./pages/Dashboard";
-import ProtectedRoute from "./components/ProtectedRoute";
+import { Routes, Route, Navigate } from 'react-router-dom';
+import LandingPage from './components/LandingPage';
+import Register from './components/Register';
+import Login from './components/Login';
+import Memories from './components/Memories';
+import Dashboard from './pages/Dashboard';
+import PrivateRoute from './components/PrivateRoute';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { theme } from './theme';
@@ -12,22 +14,32 @@ const App = () => {
     return (
         <ThemeProvider theme={theme}>
             <CssBaseline />
-            <Router>
-                <Layout>
-                    <Routes>
-                        <Route path="/" element={<Register />} />
-                        <Route path="/login" element={<Login />} />
-                        <Route 
-                            path="/dashboard" 
-                            element={
-                                <ProtectedRoute>
-                                    <Dashboard />
-                                </ProtectedRoute>
-                            } 
-                        />
-                    </Routes>
-                </Layout>
-            </Router>
+            <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/login" element={<Login />} />
+                <Route 
+                    path="/dashboard" 
+                    element={
+                        <PrivateRoute>
+                            <Layout>
+                                <Dashboard />
+                            </Layout>
+                        </PrivateRoute>
+                    } 
+                />
+                <Route 
+                    path="/memories" 
+                    element={
+                        <PrivateRoute>
+                            <Layout>
+                                <Memories />
+                            </Layout>
+                        </PrivateRoute>
+                    } 
+                />
+                <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
         </ThemeProvider>
     );
 };
