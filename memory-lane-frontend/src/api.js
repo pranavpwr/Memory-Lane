@@ -4,25 +4,83 @@ const API = axios.create({
     baseURL: "http://localhost:5001/api",
 });
 
-// Add a request interceptor to add the token to all requests
-API.interceptors.request.use((config) => {
+// Only add token interceptor for protected routes
+const protectedAPI = axios.create({
+    baseURL: "http://localhost:5001/api",
+});
+
+protectedAPI.interceptors.request.use((config) => {
     const token = localStorage.getItem("token");
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+    if (!token) {
+        window.location.href = '/login';
+        return Promise.reject('No auth token');
     }
-    
-    // Don't set Content-Type for FormData
-    if (config.data instanceof FormData) {
-        delete config.headers['Content-Type'];
-    } else {
-        config.headers['Content-Type'] = 'application/json';
-    }
-    
+    config.headers.Authorization = `Bearer ${token}`;
     return config;
 });
 
-export const register = (user) => API.post("/auth/register", user);
-export const login = (user) => API.post("/auth/login", user);
-export const addMemory = (memoryData) => API.post("/memory/add-memory", memoryData);
-export const getMemories = () => API.get("/memory/memories");
-export const deleteMemory = (id) => API.delete(`/memory/delete/${id}`);
+export const register = async (formData) => {
+    try {
+        const response = await API.post("/users/register", formData);
+        return response.data;
+    } catch (error) {
+        throw new Error(error.response?.data?.error || "Registration failed. Please try again.");
+    }
+};
+
+export const login = async (formData) => {
+    try {
+        const response = await API.post("/users/login", formData);
+        if (response.data.token) {
+            localStorage.setItem("token", response.data.token);
+        }
+        return response.data;
+    } catch (error) {
+        throw new Error(error.response?.data?.error || "Login failed. Please try again.");
+    }
+};
+
+// Use protectedAPI for authenticated routes
+export const getMemories = async () => {
+    try {
+        const response = await protectedAPI.get("/memory/memories");
+        if (!response.data) {
+            throw new Error("No data received from server");
+        }
+        
+        const memories = (response.data.memories || []).map(memory => ({
+            ...memory,
+            imageUrl: memory.media?.url || null,
+            previewUrl: memory.media?.url || null,
+            mediaType: memory.media?.resource_type || null
+        }));
+        
+        return {
+            success: response.data.success,
+            message: response.data.message,
+            memories
+        };
+    } catch (error) {
+        console.error("Memory fetch error:", error);
+        throw new Error(
+            error.response?.data?.error || 
+            error.message || 
+            "Failed to fetch memories"
+        );
+    }
+};
+
+export const addMemory = async (formData) => {
+    try {
+        const response = await protectedAPI.post("/memory/add-memory", formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data;
+    } catch (error) {
+        throw new Error(error.response?.data?.error || "Failed to add memory");
+    }
+};
+
+export const deleteMemory = (id) => protectedAPI.delete(`/memory/delete/${id}`);

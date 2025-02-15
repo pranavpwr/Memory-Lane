@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { getMemories, deleteMemory } from "../api";
-import { Grid, Card, CardContent, CardMedia, Typography, IconButton, Box } from "@mui/material";
-import { Delete } from "@mui/icons-material";
+import { 
+    Grid, Card, CardContent, CardMedia, Typography, IconButton, 
+    Box, Skeleton, Alert, Fade, Chip
+} from "@mui/material";
+import { Delete, Event, Image } from "@mui/icons-material";
 import { motion } from "framer-motion";
 
 const Memories = () => {
@@ -12,17 +15,20 @@ const Memories = () => {
     const fetchMemories = async () => {
         try {
             const response = await getMemories();
-            if (response.data.success) {
-                setMemories(response.data.memories);
+            if (response.success) {
+                setMemories(response.memories);
             }
-        } catch (err) {
-            setError(err.message);
-            console.error('Error fetching memories:', err);
+        } catch (error) {
+            if (error.response?.status === 401) {
+                // Handle by API interceptor
+                return;
+            }
+            setError("Failed to fetch memories. Please try again later.");
+            console.error('Error fetching memories:', error);
         } finally {
             setLoading(false);
         }
     };
-
     useEffect(() => {
         fetchMemories();
     }, []);
@@ -51,15 +57,54 @@ const Memories = () => {
         show: { y: 0, opacity: 1 }
     };
 
-    if (loading) return <div>Loading...</div>;
-    if (error) return <div>Error: {error}</div>;
-    if (!memories?.length) return <div>No memories found</div>;
+    if (loading) {
+        return (
+            <Grid container spacing={3}>
+                {[1, 2, 3].map((skeleton) => (
+                    <Grid item xs={12} sm={6} md={4} key={skeleton}>
+                        <Skeleton variant="rectangular" height={200} />
+                        <Box sx={{ pt: 0.5 }}>
+                            <Skeleton />
+                            <Skeleton width="60%" />
+                        </Box>
+                    </Grid>
+                ))}
+            </Grid>
+        );
+    }
+
+    if (error) {
+        return (
+            <Fade in>
+                <Alert severity="error" sx={{ mt: 2 }}>
+                    {error}
+                </Alert>
+            </Fade>
+        );
+    }
+
+    if (!memories?.length) {
+        return (
+            <Fade in>
+                <Box 
+                    sx={{ 
+                        textAlign: 'center', 
+                        py: 8,
+                        color: 'text.secondary'
+                    }}
+                >
+                    <Image sx={{ fontSize: 60, mb: 2, opacity: 0.5 }} />
+                    <Typography variant="h6">No memories yet</Typography>
+                    <Typography variant="body2">
+                        Start adding your precious moments!
+                    </Typography>
+                </Box>
+            </Fade>
+        );
+    }
 
     return (
-        <Box sx={{ mt: 4 }}>
-            <Typography variant="h4" gutterBottom>
-                Your Memories
-            </Typography>
+        <Box sx={{ py: 4 }}>
             <motion.div
                 variants={container}
                 initial="hidden"
@@ -69,44 +114,68 @@ const Memories = () => {
                     {memories.map((memory) => (
                         <Grid item xs={12} sm={6} md={4} key={memory._id}>
                             <motion.div variants={item}>
-                                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                                    {memory.media?.url && (
-                                        memory.media.resource_type === 'video' ? (
-                                            <CardMedia
-                                                component="video"
-                                                height="200"
-                                                src={memory.media.url}
-                                                controls
-                                            />
-                                        ) : (
-                                            <CardMedia
-                                                component="img"
-                                                height="200"
-                                                image={memory.media.url}
-                                                alt={memory.title}
-                                                sx={{ objectFit: 'cover' }}
-                                            />
-                                        )
+                                <Card 
+                                    sx={{ 
+                                        height: '100%',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        transition: 'transform 0.2s',
+                                        '&:hover': {
+                                            transform: 'translateY(-4px)'
+                                        }
+                                    }}
+                                >
+                                    {memory.imageUrl && (
+                                        <CardMedia
+                                            component="img"
+                                            height="200"
+                                            image={memory.imageUrl}
+                                            alt={memory.title}
+                                            sx={{ objectFit: 'cover' }}
+                                        />
                                     )}
                                     <CardContent sx={{ flexGrow: 1 }}>
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                            <Typography variant="h6" gutterBottom>
+                                        <Box sx={{ 
+                                            display: 'flex', 
+                                            justifyContent: 'space-between', 
+                                            alignItems: 'flex-start',
+                                            mb: 2
+                                        }}>
+                                            <Typography variant="h6" component="h2">
                                                 {memory.title}
                                             </Typography>
                                             <IconButton 
                                                 onClick={() => handleDelete(memory._id)}
                                                 size="small"
                                                 color="error"
+                                                sx={{ 
+                                                    opacity: 0.6,
+                                                    '&:hover': { opacity: 1 }
+                                                }}
                                             >
                                                 <Delete />
                                             </IconButton>
                                         </Box>
-                                        <Typography variant="body2" color="text.secondary">
+                                        <Typography 
+                                            variant="body2" 
+                                            color="text.secondary"
+                                            sx={{ mb: 2 }}
+                                        >
                                             {memory.description}
                                         </Typography>
-                                        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                                            {new Date(memory.createdAt).toLocaleDateString()}
-                                        </Typography>
+                                        <Box sx={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center',
+                                            gap: 1
+                                        }}>
+                                            <Event fontSize="small" color="action" />
+                                            <Chip
+                                                label={new Date(memory.createdAt).toLocaleDateString()}
+                                                size="small"
+                                                variant="outlined"
+                                                color="primary"
+                                            />
+                                        </Box>
                                     </CardContent>
                                 </Card>
                             </motion.div>

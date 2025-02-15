@@ -1,76 +1,117 @@
 import { useState } from "react";
 import { login } from "../api";
-import { useNavigate } from "react-router-dom";
-import { Box, Card, TextField, Button, Typography, Alert } from '@mui/material';
-import { motion } from 'framer-motion';
+import { useNavigate, Link } from "react-router-dom";
+import { 
+    Container, Box, Typography, TextField, Button, Paper,
+    Avatar, CircularProgress, Alert, Fade
+} from '@mui/material';
+import LoginIcon from '@mui/icons-material/Login';
+import { motion } from "framer-motion";
+import { theme } from "../theme";
 
 const Login = () => {
     const [form, setForm] = useState({ email: "", password: "" });
-    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
+        setError("");
+
+        // Basic validation
+        if (!form.email || !form.password) {
+            setError("All fields are required");
+            setLoading(false);
+            return;
+        }
+
         try {
-            const { data } = await login(form);
-            localStorage.setItem("token", data.token);
-            navigate("/dashboard");
+            const response = await login(form);
+            if (response.success && response.token) {
+                localStorage.setItem("token", response.token);
+                navigate("/dashboard");
+            } else {
+                setError(response.error || "Login failed");
+            }
         } catch (error) {
-            setError('Login failed. Please check your credentials.');
+            setError(error.message);
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <Box
-            sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                minHeight: '80vh'
-            }}
-        >
+        <Container component="main" maxWidth="xs">
             <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.3 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
             >
-                <Card sx={{ p: 4, width: 400, boxShadow: 3 }}>
-                    <Typography variant="h4" gutterBottom align="center">
-                        Welcome Back
+                <Box
+                    sx={{
+                        mt: 8,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                    }}
+                >
+                    <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
+                        <LoginIcon />
+                    </Avatar>
+                    <Typography component="h1" variant="h5">
+                        Sign in to Memory Lane
                     </Typography>
-                    {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-                    <form onSubmit={handleSubmit}>
+                    
+                    {error && (
+                        <Fade in>
+                            <Alert severity="error" sx={{ mt: 2, width: '100%' }}>
+                                {error}
+                            </Alert>
+                        </Fade>
+                    )}
+
+                    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
                         <TextField
-                            fullWidth
-                            label="Email"
-                            type="email"
                             margin="normal"
-                            variant="outlined"
-                            onChange={(e) => setForm({ ...form, email: e.target.value })}
                             required
+                            fullWidth
+                            label="Email Address"
+                            type="email"
+                            value={form.email}
+                            onChange={(e) => setForm({ ...form, email: e.target.value })}
+                            disabled={loading}
                         />
                         <TextField
+                            margin="normal"
+                            required
                             fullWidth
                             label="Password"
                             type="password"
-                            margin="normal"
-                            variant="outlined"
+                            value={form.password}
                             onChange={(e) => setForm({ ...form, password: e.target.value })}
-                            required
+                            disabled={loading}
                         />
                         <Button
-                            fullWidth
                             type="submit"
+                            fullWidth
                             variant="contained"
-                            size="large"
-                            sx={{ mt: 3 }}
+                            sx={{ mt: 3, mb: 2 }}
+                            disabled={loading}
                         >
-                            Login
+                            {loading ? <CircularProgress size={24} /> : "Sign In"}
                         </Button>
-                    </form>
-                </Card>
+                        <Typography variant="body2" align="center">
+                            Don't have an account?{' '}
+                            <Link to="/" style={{ color: 'primary.main' }}>
+                                Sign up
+                            </Link>
+                        </Typography>
+                    </Box>
+                </Box>
             </motion.div>
-        </Box>
+        </Container>
     );
 };
 
